@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin – Compass Homes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #003359;
+            color: #fff;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header .logo {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            text-transform: lowercase;
+        }
+
+        header .logo span {
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .print-btn {
+            background: #fff;
+            color: #003359;
+            border: none;
+            padding: 9px 22px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            border-radius: 5px;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: background 0.15s;
+        }
+
+        .print-btn:hover { background: #e0e8f0; }
+
+        .container {
+            max-width: 1100px;
+            margin: 36px auto;
+            padding: 0 20px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.05rem;
+        }
+
+        .status strong { color: #c0392b; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .card .qr-box {
+            margin-bottom: 14px;
+        }
+
+        .card .qr-box canvas,
+        .card .qr-box img {
+            display: block;
+        }
+
+        .card .sample-id {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #fff;
+            background: #003359;
+            padding: 3px 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .card .manufacturer {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #003359;
+            margin-bottom: 2px;
+        }
+
+        .card .collection {
+            font-size: 0.88rem;
+            color: #555;
+            margin-bottom: 2px;
+        }
+
+        .card .size {
+            font-size: 0.82rem;
+            color: #888;
+        }
+
+        footer {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.8rem;
+            padding: 30px 0 20px;
+        }
+
+        /* ── Print styles ── */
+        @media print {
+            body { background: #fff; }
+            header .print-btn { display: none; }
+            .container { margin: 0; padding: 0; max-width: 100%; }
+            footer { display: none; }
+
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 12px;
+                page-break-inside: auto;
+            }
+
+            .card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 12px;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .status { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">compass <span>Homes</span></div>
+    <button class="print-btn" onclick="window.print()">&#128438; Print All</button>
+</header>
+
+<div class="container">
+    <div id="content">
+        <div class="status">Loading samples…</div>
+    </div>
+</div>
+
+<footer>compass HOMES &copy; <span id="yr"></span></footer>
+
+<script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    const SHEET_ID  = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1`;
+    const BASE_URL  = 'https://compass-samples.vercel.app/sample.html';
+
+    function col(row, headers, ...names) {
+        for (const name of names) {
+            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase());
+            if (i !== -1) {
+                const cell = row.c[i];
+                return cell && cell.v != null ? String(cell.v).trim() : '';
+            }
+        }
+        return '';
+    }
+
+    function renderError(msg) {
+        document.getElementById('content').innerHTML =
+            `<div class="status"><strong>Error:</strong> ${msg}</div>`;
+    }
+
+    async function load() {
+        let data;
+        try {
+            const res  = await fetch(SHEET_URL);
+            const text = await res.text();
+            const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+            data = JSON.parse(json);
+        } catch (e) {
+            renderError('Could not load spreadsheet. Make sure the sheet is set to "Anyone with the link can view".');
+            return;
+        }
+
+        const table = data.table;
+        if (!table || !table.rows || table.rows.length === 0) {
+            renderError('The spreadsheet appears to be empty.');
+            return;
+        }
+
+        const parsedNumHeaders = table.parsedNumHeaders ?? 1;
+        let headers, rows;
+        if (parsedNumHeaders === 0 && table.rows.length > 0) {
+            headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
+            rows = table.rows.slice(1);
+        } else {
+            headers = table.cols.map(c => c.label || '');
+            rows = table.rows;
+        }
+
+        const content = document.getElementById('content');
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+
+        for (const row of rows) {
+            const sampleId     = col(row, headers, 'sample id', 'id', 'sampleid');
+            const manufacturer = col(row, headers, 'manufacturer');
+            const collection   = col(row, headers, 'collection');
+            const size         = col(row, headers, 'size');
+
+            if (!sampleId) continue;
+
+            const url = `${BASE_URL}?id=${encodeURIComponent(sampleId)}`;
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="qr-box" id="qr-${CSS.escape(sampleId)}"></div>
+                <div class="sample-id">${sampleId}</div>
+                <div class="manufacturer">${manufacturer || '—'}</div>
+                <div class="collection">${collection || ''}</div>
+                <div class="size">${size || ''}</div>
+            `;
+            grid.appendChild(card);
+
+            // Generate QR after card is in the DOM
+            requestAnimationFrame(() => {
+                new QRCode(document.getElementById(`qr-${CSS.escape(sampleId)}`), {
+                    text: url,
+                    width: 160,
+                    height: 160,
+                    colorDark: '#003359',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            });
+        }
+
+        content.innerHTML = '';
+        if (grid.children.length === 0) {
+            content.innerHTML = '<div class="status">No samples with IDs found in the sheet.</div>';
+        } else {
+            content.appendChild(grid);
+        }
+    }
+
+    load();
+</script>
+</body>
+</html>
