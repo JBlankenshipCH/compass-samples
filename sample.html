@@ -170,7 +170,7 @@
     document.getElementById('yr').textContent = new Date().getFullYear();
 
     const SHEET_ID = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1`;
 
     function getParam(name) {
         return new URLSearchParams(window.location.search).get(name);
@@ -287,8 +287,17 @@
             return;
         }
 
-        // Build header list from first row
-        const headers = table.cols.map(c => c.label || '');
+        // Build header list — if parsedNumHeaders is 0, Google returns no labels,
+        // so fall back to treating the first data row as headers.
+        const parsedNumHeaders = table.parsedNumHeaders ?? 1;
+        let headers, rows;
+        if (parsedNumHeaders === 0 && table.rows.length > 0) {
+            headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
+            rows = table.rows.slice(1);
+        } else {
+            headers = table.cols.map(c => c.label || '');
+            rows = table.rows;
+        }
 
         // Find matching row
         const idColIdx = headers.findIndex(h =>
@@ -296,7 +305,7 @@
         );
 
         let match = null;
-        for (const row of table.rows) {
+        for (const row of rows) {
             const cell = idColIdx >= 0 ? row.c[idColIdx] : null;
             const val = cell ? String(cell.v || '').trim() : '';
             if (val.toLowerCase() === sampleId.toLowerCase()) {
