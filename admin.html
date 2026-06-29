@@ -225,6 +225,8 @@
         const grid = document.createElement('div');
         grid.className = 'grid';
 
+        const qrQueue = []; // collect { element, url } after grid is in DOM
+
         for (const row of rows) {
             const sampleId     = col(row, headers, 'sample id', 'id', 'sampleid');
             const manufacturer = col(row, headers, 'manufacturer');
@@ -237,33 +239,53 @@
 
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `
-                <div class="qr-box" id="qr-${CSS.escape(sampleId)}"></div>
-                <div class="sample-id">${sampleId}</div>
-                <div class="manufacturer">${manufacturer || '—'}</div>
-                <div class="collection">${collection || ''}</div>
-                <div class="size">${size || ''}</div>
-            `;
+
+            const qrBox = document.createElement('div');
+            qrBox.className = 'qr-box';
+
+            const idBadge   = document.createElement('div');
+            idBadge.className = 'sample-id';
+            idBadge.textContent = sampleId;
+
+            const mfr = document.createElement('div');
+            mfr.className = 'manufacturer';
+            mfr.textContent = manufacturer || '—';
+
+            const coll = document.createElement('div');
+            coll.className = 'collection';
+            coll.textContent = collection || '';
+
+            const sz = document.createElement('div');
+            sz.className = 'size';
+            sz.textContent = size || '';
+
+            card.appendChild(qrBox);
+            card.appendChild(idBadge);
+            card.appendChild(mfr);
+            card.appendChild(coll);
+            card.appendChild(sz);
             grid.appendChild(card);
 
-            // Generate QR after card is in the DOM
-            requestAnimationFrame(() => {
-                new QRCode(document.getElementById(`qr-${CSS.escape(sampleId)}`), {
-                    text: url,
-                    width: 160,
-                    height: 160,
-                    colorDark: '#003359',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-            });
+            qrQueue.push({ el: qrBox, url });
         }
 
         content.innerHTML = '';
         if (grid.children.length === 0) {
             content.innerHTML = '<div class="status">No samples with IDs found in the sheet.</div>';
-        } else {
-            content.appendChild(grid);
+            return;
+        }
+
+        content.appendChild(grid); // grid must be in DOM before QRCode renders
+
+        for (const { el, url } of qrQueue) {
+            new QRCode(el, {
+                text: url,
+                width: 160,
+                height: 160,
+                colorDark: '#003359',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
         }
     }
 
