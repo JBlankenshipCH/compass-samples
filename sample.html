@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Info – Compass Homes</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #003359;
+            color: #fff;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header .logo {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            text-transform: lowercase;
+        }
+
+        header .logo span {
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 32px;
+        }
+
+        .sample-id-badge {
+            display: inline-block;
+            background: #003359;
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-bottom: 18px;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            color: #003359;
+            margin-bottom: 4px;
+        }
+
+        .collection {
+            font-size: 1.05rem;
+            color: #555;
+            margin-bottom: 24px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .meta-item label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .meta-item span {
+            font-size: 1rem;
+            color: #222;
+        }
+
+        h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #003359;
+            margin-bottom: 14px;
+            border-bottom: 2px solid #e0e6ed;
+            padding-bottom: 6px;
+        }
+
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+
+        .pricing-table th {
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            padding: 6px 10px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .pricing-table td {
+            padding: 10px 10px;
+            font-size: 0.97rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .pricing-table tr:last-child td { border-bottom: none; }
+
+        .pricing-table td.price {
+            font-weight: 600;
+            color: #003359;
+        }
+
+        .error-msg, .loading-msg {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.05rem;
+        }
+
+        .error-msg strong { color: #c0392b; }
+
+        footer {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.8rem;
+            padding: 30px 0 20px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">compass <span>Homes</span></div>
+</header>
+
+<div class="container">
+    <div class="card" id="content">
+        <div class="loading-msg">Loading sample data…</div>
+    </div>
+</div>
+
+<footer>compass HOMES &copy; <span id="yr"></span></footer>
+
+<script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    const SHEET_ID = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+    function getParam(name) {
+        return new URLSearchParams(window.location.search).get(name);
+    }
+
+    function fmt(val) {
+        if (val === null || val === undefined || val === '') return '—';
+        const n = parseFloat(val);
+        if (!isNaN(n)) return '$' + n.toFixed(2);
+        return val;
+    }
+
+    function renderError(msg) {
+        document.getElementById('content').innerHTML =
+            `<div class="error-msg"><strong>Error:</strong> ${msg}</div>`;
+    }
+
+    function renderSample(row, headers) {
+        function col(name) {
+            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase().trim());
+            if (i === -1) return '';
+            const cell = row.c[i];
+            return cell ? (cell.v !== null && cell.v !== undefined ? String(cell.v) : '') : '';
+        }
+
+        const sampleId   = col('Sample ID') || col('sample id') || col('ID') || col('id');
+        const manufacturer = col('Manufacturer') || col('manufacturer');
+        const collection = col('Collection') || col('collection');
+        const size       = col('Size') || col('size');
+
+        // Pricing groups — try common column name patterns
+        const pricingGroups = [
+            { label: 'Floor',       keys: ['Floor', 'Floor Price', 'Floor Cost'] },
+            { label: 'Wall',        keys: ['Wall', 'Wall Price', 'Wall Cost'] },
+            { label: 'Backsplash',  keys: ['Backsplash', 'Backsplash Price', 'Backsplash Cost'] },
+        ];
+
+        const pricingRows = pricingGroups.map(group => {
+            let value = '';
+            for (const key of group.keys) {
+                const v = col(key);
+                if (v !== '') { value = v; break; }
+            }
+            return { label: group.label, value };
+        }).filter(r => r.value !== '');
+
+        // Collect any remaining columns as extra pricing tiers
+        const knownKeys = new Set([
+            'sample id','id','manufacturer','collection','size',
+            'floor','floor price','floor cost',
+            'wall','wall price','wall cost',
+            'backsplash','backsplash price','backsplash cost'
+        ]);
+        const extraRows = [];
+        headers.forEach((h, i) => {
+            if (!h) return;
+            const key = h.toLowerCase().trim();
+            if (knownKeys.has(key)) return;
+            const cell = row.c[i];
+            const val = cell ? (cell.v !== null && cell.v !== undefined ? String(cell.v) : '') : '';
+            if (val) extraRows.push({ label: h.trim(), value: val });
+        });
+
+        const allPricing = [...pricingRows, ...extraRows];
+
+        let pricingHTML = '';
+        if (allPricing.length > 0) {
+            const rows = allPricing.map(r =>
+                `<tr><td>${r.label}</td><td class="price">${fmt(r.value)}</td></tr>`
+            ).join('');
+            pricingHTML = `
+                <h3>Pricing</h3>
+                <table class="pricing-table">
+                    <thead><tr><th>Group</th><th>Price</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
+        document.getElementById('content').innerHTML = `
+            <div class="sample-id-badge">Sample ID: ${sampleId || '—'}</div>
+            <h2>${manufacturer || '—'}</h2>
+            <div class="collection">${collection || ''}</div>
+            <div class="meta-grid">
+                <div class="meta-item"><label>Manufacturer</label><span>${manufacturer || '—'}</span></div>
+                <div class="meta-item"><label>Collection</label><span>${collection || '—'}</span></div>
+                <div class="meta-item"><label>Size</label><span>${size || '—'}</span></div>
+            </div>
+            ${pricingHTML || '<div class="loading-msg" style="padding:20px 0">No pricing data found.</div>'}
+        `;
+    }
+
+    async function load() {
+        const sampleId = getParam('id') || getParam('sample') || getParam('sampleId');
+        if (!sampleId) {
+            renderError('No sample ID provided. Add <code>?id=YOUR_SAMPLE_ID</code> to the URL.');
+            return;
+        }
+
+        let data;
+        try {
+            const res = await fetch(SHEET_URL);
+            const text = await res.text();
+            // Google wraps the JSON in a callback — strip it
+            const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+            data = JSON.parse(json);
+        } catch (e) {
+            renderError('Could not load spreadsheet data. Make sure the sheet is set to "Anyone with the link can view".');
+            return;
+        }
+
+        const table = data.table;
+        if (!table || !table.rows || table.rows.length === 0) {
+            renderError('The spreadsheet appears to be empty.');
+            return;
+        }
+
+        // Build header list from first row
+        const headers = table.cols.map(c => c.label || '');
+
+        // Find matching row
+        const idColIdx = headers.findIndex(h =>
+            h && ['sample id','id','sampleid'].includes(h.toLowerCase().trim())
+        );
+
+        let match = null;
+        for (const row of table.rows) {
+            const cell = idColIdx >= 0 ? row.c[idColIdx] : null;
+            const val = cell ? String(cell.v || '').trim() : '';
+            if (val.toLowerCase() === sampleId.toLowerCase()) {
+                match = row;
+                break;
+            }
+        }
+
+        if (!match) {
+            renderError(`No sample found with ID "<strong>${sampleId}</strong>".`);
+            return;
+        }
+
+        renderSample(match, headers);
+    }
+
+    load();
+</script>
+</body>
+</html>
