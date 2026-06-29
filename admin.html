@@ -174,7 +174,7 @@
     document.getElementById('yr').textContent = new Date().getFullYear();
 
     const SHEET_ID  = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1`;
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0`;
     const BASE_URL  = 'https://compass-samples.vercel.app/sample.html';
 
     function col(row, headers, ...names) {
@@ -211,15 +211,9 @@
             return;
         }
 
-        const parsedNumHeaders = table.parsedNumHeaders ?? 1;
-        let headers, rows;
-        if (parsedNumHeaders === 0 && table.rows.length > 0) {
-            headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
-            rows = table.rows.slice(1);
-        } else {
-            headers = table.cols.map(c => c.label || '');
-            rows = table.rows;
-        }
+        // With headers=0, gviz returns all rows as data — first row is our header row.
+        const headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
+        const rows = table.rows.slice(1);
 
         const content = document.getElementById('content');
         const grid = document.createElement('div');
