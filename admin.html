@@ -128,28 +128,53 @@
             padding: 30px 0 20px;
         }
 
-        /* ── Print styles ── */
+        /* ── Print styles — Avery 5163 (2" × 4", 2-up, 5 rows) ── */
         @media print {
+            @page {
+                size: 8.5in 11in;
+                margin: 0.5in 0.15in;
+            }
+
             body { background: #fff; }
-            header .print-btn { display: none; }
+            header, footer { display: none; }
             .container { margin: 0; padding: 0; max-width: 100%; }
-            footer { display: none; }
 
             .grid {
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 12px;
+                grid-template-columns: 4in 4in;
+                grid-template-rows: repeat(5, 2in);
+                column-gap: 0.15in;
+                row-gap: 0;
                 page-break-inside: auto;
             }
 
             .card {
+                width: 4in;
+                height: 2in;
                 box-shadow: none;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 12px;
+                border: none;
+                border-radius: 0;
+                padding: 0.15in 0.2in;
+                overflow: hidden;
                 page-break-inside: avoid;
                 break-inside: avoid;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
             }
+
+            .card .qr-box canvas,
+            .card .qr-box img {
+                width: 1in !important;
+                height: 1in !important;
+            }
+
+            .card .qr-box { margin-bottom: 4pt; }
+            .card .sample-id { font-size: 7pt; padding: 2px 6px; margin-bottom: 3pt; }
+            .card .manufacturer { font-size: 9pt; }
+            .card .collection { font-size: 8pt; }
+            .card .size { font-size: 7pt; }
 
             .status { display: none; }
         }
