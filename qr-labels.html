@@ -91,8 +91,23 @@
             text-align: center;
         }
 
-        .card .qr-box { margin-bottom: 14px; }
+        .card .qr-box { margin-bottom: 10px; }
         .card .qr-box canvas, .card .qr-box img { display: block; }
+
+        .cat-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-bottom: 5px;
+        }
+
+        .cat-tile     { background: #1a6e99; }
+        .cat-hardwood { background: #7B4F2E; }
+        .cat-carpet   { background: #3D6B4F; }
 
         .card .sample-id {
             font-size: 0.72rem;
@@ -103,12 +118,12 @@
             background: #003359;
             padding: 3px 10px;
             border-radius: 4px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
-        .card .manufacturer { font-size: 1rem; font-weight: 700; color: #003359; margin-bottom: 2px; }
-        .card .collection { font-size: 0.88rem; color: #555; margin-bottom: 2px; }
-        .card .size { font-size: 0.82rem; color: #888; }
+        .card .manufacturer { font-size: 0.95rem; font-weight: 700; color: #003359; margin-bottom: 2px; }
+        .card .collection   { font-size: 0.85rem; color: #555; margin-bottom: 2px; }
+        .card .descriptor   { font-size: 0.8rem; color: #888; }
 
         footer {
             text-align: center;
@@ -140,7 +155,7 @@
                 box-shadow: none;
                 border: none;
                 border-radius: 0;
-                padding: 0.15in 0.2in;
+                padding: 0.1in 0.2in;
                 overflow: hidden;
                 page-break-inside: avoid;
                 break-inside: avoid;
@@ -150,12 +165,18 @@
                 justify-content: center;
             }
 
-            .card .qr-box canvas, .card .qr-box img { width: 1in !important; height: 1in !important; }
-            .card .qr-box { margin-bottom: 4pt; }
+            .card .qr-box canvas,
+            .card .qr-box img { width: 1in !important; height: 1in !important; }
+            .card .qr-box { margin-bottom: 3pt; }
+            .cat-badge { font-size: 6pt; padding: 1px 6px; margin-bottom: 3pt;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .cat-tile     { background: #1a6e99 !important; }
+            .cat-hardwood { background: #7B4F2E !important; }
+            .cat-carpet   { background: #3D6B4F !important; }
             .card .sample-id { font-size: 7pt; padding: 2px 6px; margin-bottom: 3pt; }
             .card .manufacturer { font-size: 9pt; }
-            .card .collection { font-size: 8pt; }
-            .card .size { font-size: 7pt; }
+            .card .collection   { font-size: 8pt; }
+            .card .descriptor   { font-size: 7pt; }
             .status { display: none; }
         }
     </style>
@@ -181,98 +202,105 @@
 <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
 
-    const SHEET_ID  = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0`;
-    const BASE_URL  = 'https://compass-samples.vercel.app/sample.html';
+    const SHEET_ID = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
+    const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0&sheet=`;
+    const SAMPLE_BASE = 'https://compass-samples.vercel.app/sample.html';
 
-    function col(row, headers, ...names) {
-        for (const name of names) {
-            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase());
-            if (i !== -1) {
-                const cell = row.c[i];
-                return cell && cell.v != null ? String(cell.v).trim() : '';
-            }
-        }
-        return '';
+    const TABS = [
+        { name: 'Tile',     badgeClass: 'cat-tile',     descriptorKey: 'size' },
+        { name: 'Hardwood', badgeClass: 'cat-hardwood', descriptorKey: 'species' },
+        { name: 'Carpet',   badgeClass: 'cat-carpet',   descriptorKey: 'fiber' },
+    ];
+
+    function colVal(row, headers, key) {
+        const i = headers.findIndex(h => h && h.toLowerCase().trim() === key.toLowerCase());
+        if (i === -1) return '';
+        const cell = row.c[i];
+        return cell && cell.v != null ? String(cell.v).trim() : '';
     }
 
-    function renderError(msg) {
-        document.getElementById('content').innerHTML =
-            `<div class="status"><strong>Error:</strong> ${msg}</div>`;
+    async function fetchTab(tabName) {
+        const res  = await fetch(BASE_URL + encodeURIComponent(tabName));
+        const text = await res.text();
+        const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+        return JSON.parse(json);
     }
 
     async function load() {
-        let data;
+        let results;
         try {
-            const res  = await fetch(SHEET_URL);
-            const text = await res.text();
-            const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
-            data = JSON.parse(json);
+            results = await Promise.all(TABS.map(t => fetchTab(t.name)));
         } catch (e) {
-            renderError('Could not load spreadsheet. Make sure the sheet is set to "Anyone with the link can view".');
+            document.getElementById('content').innerHTML =
+                `<div class="status"><strong>Error:</strong> Could not load spreadsheet. Make sure the sheet is set to "Anyone with the link can view".</div>`;
             return;
         }
-
-        const table = data.table;
-        if (!table || !table.rows || table.rows.length === 0) {
-            renderError('The spreadsheet appears to be empty.');
-            return;
-        }
-
-        const headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
-        const rows = table.rows.slice(1);
 
         const content = document.getElementById('content');
-        const grid = document.createElement('div');
+        const grid    = document.createElement('div');
         grid.className = 'grid';
 
         const qrQueue = [];
 
-        for (const row of rows) {
-            const sampleId     = col(row, headers, 'sample id', 'id', 'sampleid');
-            const manufacturer = col(row, headers, 'manufacturer');
-            const collection   = col(row, headers, 'collection');
-            const size         = col(row, headers, 'size');
+        results.forEach((data, ti) => {
+            const tab   = TABS[ti];
+            const table = data.table;
+            if (!table || !table.rows || table.rows.length === 0) return;
 
-            if (!sampleId) continue;
+            const headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
+            const rows    = table.rows.slice(1);
 
-            const url = `${BASE_URL}?id=${encodeURIComponent(sampleId)}`;
+            for (const row of rows) {
+                const sampleId     = colVal(row, headers, 'id') || colVal(row, headers, 'sample id');
+                const manufacturer = colVal(row, headers, 'manufacturer');
+                const collection   = colVal(row, headers, 'collection');
+                const descriptor   = colVal(row, headers, tab.descriptorKey);
 
-            const card = document.createElement('div');
-            card.className = 'card';
+                if (!sampleId) continue;
 
-            const qrBox = document.createElement('div');
-            qrBox.className = 'qr-box';
+                const url = `${SAMPLE_BASE}?id=${encodeURIComponent(sampleId)}`;
 
-            const idBadge = document.createElement('div');
-            idBadge.className = 'sample-id';
-            idBadge.textContent = sampleId;
+                const card = document.createElement('div');
+                card.className = 'card';
 
-            const mfr = document.createElement('div');
-            mfr.className = 'manufacturer';
-            mfr.textContent = manufacturer || '—';
+                const qrBox = document.createElement('div');
+                qrBox.className = 'qr-box';
 
-            const coll = document.createElement('div');
-            coll.className = 'collection';
-            coll.textContent = collection || '';
+                const catBadge = document.createElement('div');
+                catBadge.className = `cat-badge ${tab.badgeClass}`;
+                catBadge.textContent = tab.name;
 
-            const sz = document.createElement('div');
-            sz.className = 'size';
-            sz.textContent = size || '';
+                const idBadge = document.createElement('div');
+                idBadge.className = 'sample-id';
+                idBadge.textContent = sampleId;
 
-            card.appendChild(qrBox);
-            card.appendChild(idBadge);
-            card.appendChild(mfr);
-            card.appendChild(coll);
-            card.appendChild(sz);
-            grid.appendChild(card);
+                const mfr = document.createElement('div');
+                mfr.className = 'manufacturer';
+                mfr.textContent = manufacturer || '—';
 
-            qrQueue.push({ el: qrBox, url });
-        }
+                const coll = document.createElement('div');
+                coll.className = 'collection';
+                coll.textContent = collection || '';
+
+                const desc = document.createElement('div');
+                desc.className = 'descriptor';
+                desc.textContent = descriptor || '';
+
+                card.appendChild(qrBox);
+                card.appendChild(catBadge);
+                card.appendChild(idBadge);
+                card.appendChild(mfr);
+                card.appendChild(coll);
+                if (descriptor) card.appendChild(desc);
+                grid.appendChild(card);
+
+                qrQueue.push({ el: qrBox, url });
+            }
+        });
 
         content.innerHTML = '';
         if (grid.children.length === 0) {
-            content.innerHTML = '<div class="status">No samples with IDs found in the sheet.</div>';
+            content.innerHTML = '<div class="status">No samples with IDs found in any tab.</div>';
             return;
         }
 

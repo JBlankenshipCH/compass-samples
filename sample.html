@@ -29,10 +29,7 @@
             text-transform: lowercase;
         }
 
-        header .logo span {
-            font-weight: 700;
-            text-transform: uppercase;
-        }
+        header .logo span { font-weight: 700; text-transform: uppercase; }
 
         .container {
             max-width: 780px;
@@ -47,18 +44,27 @@
             padding: 32px;
         }
 
-        .sample-id-badge {
+        .badge-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .badge {
             display: inline-block;
-            background: #003359;
-            color: #fff;
-            font-size: 0.78rem;
-            font-weight: 600;
+            font-size: 0.72rem;
+            font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
             padding: 4px 12px;
             border-radius: 4px;
-            margin-bottom: 18px;
         }
+
+        .badge-id   { background: #003359; color: #fff; }
+        .badge-tile { background: #1a6e99; color: #fff; }
+        .badge-hardwood { background: #7B4F2E; color: #fff; }
+        .badge-carpet   { background: #3D6B4F; color: #fff; }
 
         h2 {
             font-size: 1.6rem;
@@ -66,7 +72,7 @@
             margin-bottom: 4px;
         }
 
-        .collection {
+        .subtitle {
             font-size: 1.05rem;
             color: #555;
             margin-bottom: 24px;
@@ -89,10 +95,7 @@
             margin-bottom: 4px;
         }
 
-        .meta-item span {
-            font-size: 1rem;
-            color: #222;
-        }
+        .meta-item span { font-size: 1rem; color: #222; }
 
         h3 {
             font-size: 1rem;
@@ -123,17 +126,13 @@
         }
 
         .pricing-table td {
-            padding: 10px 10px;
+            padding: 10px;
             font-size: 0.97rem;
             border-bottom: 1px solid #f0f0f0;
         }
 
         .pricing-table tr:last-child td { border-bottom: none; }
-
-        .pricing-table td.price {
-            font-weight: 600;
-            color: #003359;
-        }
+        .pricing-table td.price { font-weight: 600; color: #003359; }
 
         .error-msg, .loading-msg {
             text-align: center;
@@ -170,14 +169,83 @@
     document.getElementById('yr').textContent = new Date().getFullYear();
 
     const SHEET_ID = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0`;
+    const BASE_SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0&sheet=`;
+
+    const CATEGORIES = {
+        Tile: {
+            tab: 'Tile',
+            badgeClass: 'badge-tile',
+            metaFields: [
+                { label: 'Manufacturer', keys: ['manufacturer'] },
+                { label: 'Collection',   keys: ['collection'] },
+                { label: 'Color',        keys: ['color'] },
+                { label: 'Size',         keys: ['size'] },
+                { label: 'Material',     keys: ['material'] },
+                { label: 'Finish',       keys: ['finish'] },
+            ],
+            pricingFields: [
+                { label: 'Floor',       keys: ['floor'] },
+                { label: 'Wall',        keys: ['wall'] },
+                { label: 'Backsplash',  keys: ['backsplash'] },
+            ],
+        },
+        Hardwood: {
+            tab: 'Hardwood',
+            badgeClass: 'badge-hardwood',
+            metaFields: [
+                { label: 'Manufacturer',  keys: ['manufacturer'] },
+                { label: 'Collection',    keys: ['collection'] },
+                { label: 'Color',         keys: ['color'] },
+                { label: 'Species',       keys: ['species'] },
+                { label: 'Construction',  keys: ['construction'] },
+                { label: 'Width',         keys: ['width'] },
+                { label: 'Finish',        keys: ['finish'] },
+            ],
+            pricingFields: [
+                { label: 'Group', keys: ['group'] },
+            ],
+        },
+        Carpet: {
+            tab: 'Carpet',
+            badgeClass: 'badge-carpet',
+            metaFields: [
+                { label: 'Manufacturer', keys: ['manufacturer'] },
+                { label: 'Collection',   keys: ['collection'] },
+                { label: 'Color',        keys: ['color'] },
+                { label: 'Fiber',        keys: ['fiber'] },
+                { label: 'Style',        keys: ['style'] },
+            ],
+            pricingFields: [
+                { label: 'Group', keys: ['group'] },
+            ],
+        },
+    };
+
+    function getCategoryFromId(id) {
+        const upper = id.toUpperCase();
+        if (upper.startsWith('TL-')) return 'Tile';
+        if (upper.startsWith('HW-')) return 'Hardwood';
+        if (upper.startsWith('CP-')) return 'Carpet';
+        return null;
+    }
 
     function getParam(name) {
         return new URLSearchParams(window.location.search).get(name);
     }
 
+    function colVal(row, headers, ...names) {
+        for (const name of names) {
+            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase());
+            if (i !== -1) {
+                const cell = row.c[i];
+                return cell && cell.v != null ? String(cell.v).trim() : '';
+            }
+        }
+        return '';
+    }
+
     function fmt(val) {
-        if (val === null || val === undefined || val === '') return '—';
+        if (!val) return '—';
         const n = parseFloat(val);
         if (!isNaN(n)) return '$' + n.toFixed(2);
         return val;
@@ -188,78 +256,48 @@
             `<div class="error-msg"><strong>Error:</strong> ${msg}</div>`;
     }
 
-    function renderSample(row, headers) {
-        function col(name) {
-            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase().trim());
-            if (i === -1) return '';
-            const cell = row.c[i];
-            return cell ? (cell.v !== null && cell.v !== undefined ? String(cell.v) : '') : '';
-        }
+    function renderSample(sampleId, row, headers, category, config) {
+        const metaItems = config.metaFields
+            .map(f => {
+                const v = colVal(row, headers, ...f.keys);
+                return `<div class="meta-item"><label>${f.label}</label><span>${v || '—'}</span></div>`;
+            })
+            .join('');
 
-        const sampleId   = col('Sample ID') || col('sample id') || col('ID') || col('id');
-        const manufacturer = col('Manufacturer') || col('manufacturer');
-        const collection = col('Collection') || col('collection');
-        const size       = col('Size') || col('size');
+        const manufacturer = colVal(row, headers, 'manufacturer');
+        const collection   = colVal(row, headers, 'collection');
 
-        // Pricing groups — try common column name patterns
-        const pricingGroups = [
-            { label: 'Floor',       keys: ['Floor', 'Floor Price', 'Floor Cost'] },
-            { label: 'Wall',        keys: ['Wall', 'Wall Price', 'Wall Cost'] },
-            { label: 'Backsplash',  keys: ['Backsplash', 'Backsplash Price', 'Backsplash Cost'] },
-        ];
+        const pricingRows = config.pricingFields
+            .map(f => {
+                const v = colVal(row, headers, ...f.keys);
+                return v ? `<tr><td>${f.label}</td><td class="price">${fmt(v)}</td></tr>` : '';
+            })
+            .join('');
 
-        const pricingRows = pricingGroups.map(group => {
-            let value = '';
-            for (const key of group.keys) {
-                const v = col(key);
-                if (v !== '') { value = v; break; }
-            }
-            return { label: group.label, value };
-        }).filter(r => r.value !== '');
-
-        // Collect any remaining columns as extra pricing tiers
-        const knownKeys = new Set([
-            'sample id','id','manufacturer','collection','size',
-            'floor','floor price','floor cost',
-            'wall','wall price','wall cost',
-            'backsplash','backsplash price','backsplash cost'
-        ]);
-        const extraRows = [];
-        headers.forEach((h, i) => {
-            if (!h) return;
-            const key = h.toLowerCase().trim();
-            if (knownKeys.has(key)) return;
-            const cell = row.c[i];
-            const val = cell ? (cell.v !== null && cell.v !== undefined ? String(cell.v) : '') : '';
-            if (val) extraRows.push({ label: h.trim(), value: val });
-        });
-
-        const allPricing = [...pricingRows, ...extraRows];
-
-        let pricingHTML = '';
-        if (allPricing.length > 0) {
-            const rows = allPricing.map(r =>
-                `<tr><td>${r.label}</td><td class="price">${fmt(r.value)}</td></tr>`
-            ).join('');
-            pricingHTML = `
-                <h3>Pricing</h3>
-                <table class="pricing-table">
-                    <thead><tr><th>Group</th><th>Price</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>`;
-        }
+        const pricingHTML = pricingRows ? `
+            <h3>Pricing</h3>
+            <table class="pricing-table">
+                <thead><tr><th>Group</th><th>Price</th></tr></thead>
+                <tbody>${pricingRows}</tbody>
+            </table>` : '';
 
         document.getElementById('content').innerHTML = `
-            <div class="sample-id-badge">Sample ID: ${sampleId || '—'}</div>
-            <h2>${manufacturer || '—'}</h2>
-            <div class="collection">${collection || ''}</div>
-            <div class="meta-grid">
-                <div class="meta-item"><label>Manufacturer</label><span>${manufacturer || '—'}</span></div>
-                <div class="meta-item"><label>Collection</label><span>${collection || '—'}</span></div>
-                <div class="meta-item"><label>Size</label><span>${size || '—'}</span></div>
+            <div class="badge-row">
+                <span class="badge badge-id">Sample ID: ${sampleId}</span>
+                <span class="badge ${config.badgeClass}">${category}</span>
             </div>
+            <h2>${manufacturer || '—'}</h2>
+            <div class="subtitle">${collection || ''}</div>
+            <div class="meta-grid">${metaItems}</div>
             ${pricingHTML || '<div class="loading-msg" style="padding:20px 0">No pricing data found.</div>'}
         `;
+    }
+
+    async function fetchSheet(tab) {
+        const res  = await fetch(BASE_SHEET_URL + encodeURIComponent(tab));
+        const text = await res.text();
+        const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+        return JSON.parse(json);
     }
 
     async function load() {
@@ -269,13 +307,17 @@
             return;
         }
 
+        const categoryName = getCategoryFromId(sampleId);
+        if (!categoryName) {
+            renderError(`Cannot determine category for ID "<strong>${sampleId}</strong>". Expected prefix TL-, HW-, or CP-.`);
+            return;
+        }
+
+        const config = CATEGORIES[categoryName];
+
         let data;
         try {
-            const res = await fetch(SHEET_URL);
-            const text = await res.text();
-            // Google wraps the JSON in a callback — strip it
-            const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
-            data = JSON.parse(json);
+            data = await fetchSheet(config.tab);
         } catch (e) {
             renderError('Could not load spreadsheet data. Make sure the sheet is set to "Anyone with the link can view".');
             return;
@@ -283,24 +325,21 @@
 
         const table = data.table;
         if (!table || !table.rows || table.rows.length === 0) {
-            renderError('The spreadsheet appears to be empty.');
+            renderError(`The ${categoryName} tab appears to be empty.`);
             return;
         }
 
-        // With headers=0, gviz returns all rows as data — first row is our header row.
-        // This avoids gviz mangling reserved column names like "ID".
         const headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
-        const rows = table.rows.slice(1);
+        const rows    = table.rows.slice(1);
 
-        // Find matching row
         const idColIdx = headers.findIndex(h =>
-            h && ['sample id','id','sampleid'].includes(h.toLowerCase().trim())
+            h && ['sample id', 'id', 'sampleid'].includes(h.toLowerCase().trim())
         );
 
         let match = null;
         for (const row of rows) {
             const cell = idColIdx >= 0 ? row.c[idColIdx] : null;
-            const val = cell ? String(cell.v || '').trim() : '';
+            const val  = cell ? String(cell.v || '').trim() : '';
             if (val.toLowerCase() === sampleId.toLowerCase()) {
                 match = row;
                 break;
@@ -308,11 +347,11 @@
         }
 
         if (!match) {
-            renderError(`No sample found with ID "<strong>${sampleId}</strong>".`);
+            renderError(`No sample found with ID "<strong>${sampleId}</strong>" in the ${categoryName} tab.`);
             return;
         }
 
-        renderSample(match, headers);
+        renderSample(sampleId, match, headers, categoryName, config);
     }
 
     load();

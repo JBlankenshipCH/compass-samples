@@ -59,17 +59,42 @@
         .btn-ghost:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
         .container {
-            max-width: 1000px;
+            max-width: 1050px;
             margin: 32px auto;
             padding: 0 20px;
         }
 
-        /* ── Toolbar ── */
+        /* ── Category tabs ── */
+        .cat-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #dde3ea;
+        }
+
+        .cat-tab {
+            padding: 10px 24px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #888;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .cat-tab:hover { color: #003359; }
+        .cat-tab.active { color: #003359; border-bottom-color: #003359; }
+
+        /* ── Sort toolbar ── */
         .toolbar {
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.07);
-            padding: 16px 20px;
+            padding: 14px 20px;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
@@ -90,8 +115,8 @@
             background: #f0f4f8;
             border: 1.5px solid #dde3ea;
             color: #003359;
-            padding: 7px 16px;
-            font-size: 0.83rem;
+            padding: 6px 14px;
+            font-size: 0.82rem;
             font-weight: 600;
             border-radius: 5px;
             cursor: pointer;
@@ -109,10 +134,7 @@
             overflow: hidden;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+        table { width: 100%; border-collapse: collapse; }
 
         thead th {
             background: #003359;
@@ -157,16 +179,17 @@
             @page { size: 8.5in 11in; margin: 0.5in; }
 
             body { background: #fff; }
-            header { padding: 10px 0; }
             header .header-actions { display: none; }
+            .cat-tabs { display: none; }
             .toolbar { display: none; }
             .container { margin: 0; padding: 0; max-width: 100%; }
             footer { display: none; }
 
-            .print-date {
+            .print-meta {
                 font-size: 9pt;
-                color: #666;
-                text-align: right;
+                color: #555;
+                display: flex;
+                justify-content: space-between;
                 margin-bottom: 8pt;
             }
 
@@ -182,7 +205,11 @@
             }
 
             tbody td { font-size: 8pt; padding: 5px 10px; }
-            tbody tr:nth-child(even) { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            tbody tr:nth-child(even) {
+                background: #f5f5f5 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
     </style>
 </head>
@@ -197,20 +224,24 @@
 </header>
 
 <div class="container">
-    <div class="print-date" id="print-date"></div>
+
+    <div class="print-meta" id="print-meta"></div>
+
+    <div class="cat-tabs" id="cat-tabs">
+        <button class="cat-tab active" data-cat="Tile"     onclick="selectCategory(this)">Tile</button>
+        <button class="cat-tab"        data-cat="Hardwood" onclick="selectCategory(this)">Hardwood</button>
+        <button class="cat-tab"        data-cat="Carpet"   onclick="selectCategory(this)">Carpet</button>
+    </div>
 
     <div class="toolbar" id="toolbar">
         <label>Sort by:</label>
-        <button class="sort-btn active" data-col="manufacturer" onclick="sortBy(this)">Manufacturer</button>
-        <button class="sort-btn" data-col="size" onclick="sortBy(this)">Size</button>
-        <button class="sort-btn" data-col="floor" onclick="sortBy(this)">Floor Group</button>
-        <button class="sort-btn" data-col="wall" onclick="sortBy(this)">Wall Group</button>
-        <button class="sort-btn" data-col="backsplash" onclick="sortBy(this)">Backsplash Group</button>
+        <span id="sort-buttons"></span>
     </div>
 
     <div id="content">
         <div class="status">Loading samples…</div>
     </div>
+
 </div>
 
 <footer>compass HOMES &copy; <span id="yr"></span></footer>
@@ -218,23 +249,76 @@
 <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    document.getElementById('print-date').textContent = 'Printed: ' + today;
 
-    const SHEET_ID  = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0`;
+    const SHEET_ID = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
+    const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0&sheet=`;
 
-    let allSamples = [];
-    let currentSort = 'manufacturer';
+    const CATEGORIES = {
+        Tile: {
+            columns: [
+                { label: 'Manufacturer', key: 'manufacturer' },
+                { label: 'Collection',   key: 'collection' },
+                { label: 'Color',        key: 'color' },
+                { label: 'Size',         key: 'size' },
+                { label: 'Material',     key: 'material' },
+                { label: 'Finish',       key: 'finish' },
+                { label: 'Floor',        key: 'floor' },
+                { label: 'Wall',         key: 'wall' },
+                { label: 'Backsplash',   key: 'backsplash' },
+            ],
+            sortOptions: [
+                { label: 'Manufacturer', key: 'manufacturer' },
+                { label: 'Size',         key: 'size' },
+                { label: 'Floor Group',  key: 'floor' },
+                { label: 'Wall Group',   key: 'wall' },
+                { label: 'Backsplash',   key: 'backsplash' },
+            ],
+        },
+        Hardwood: {
+            columns: [
+                { label: 'Manufacturer',  key: 'manufacturer' },
+                { label: 'Collection',    key: 'collection' },
+                { label: 'Color',         key: 'color' },
+                { label: 'Species',       key: 'species' },
+                { label: 'Construction',  key: 'construction' },
+                { label: 'Width',         key: 'width' },
+                { label: 'Finish',        key: 'finish' },
+                { label: 'Group',         key: 'group' },
+            ],
+            sortOptions: [
+                { label: 'Manufacturer', key: 'manufacturer' },
+                { label: 'Species',      key: 'species' },
+                { label: 'Width',        key: 'width' },
+                { label: 'Group',        key: 'group' },
+            ],
+        },
+        Carpet: {
+            columns: [
+                { label: 'Manufacturer', key: 'manufacturer' },
+                { label: 'Collection',   key: 'collection' },
+                { label: 'Color',        key: 'color' },
+                { label: 'Fiber',        key: 'fiber' },
+                { label: 'Style',        key: 'style' },
+                { label: 'Group',        key: 'group' },
+            ],
+            sortOptions: [
+                { label: 'Manufacturer', key: 'manufacturer' },
+                { label: 'Fiber',        key: 'fiber' },
+                { label: 'Style',        key: 'style' },
+                { label: 'Group',        key: 'group' },
+            ],
+        },
+    };
 
-    function col(row, headers, ...names) {
-        for (const name of names) {
-            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase());
-            if (i !== -1) {
-                const cell = row.c[i];
-                return cell && cell.v != null ? String(cell.v).trim() : '';
-            }
-        }
-        return '';
+    let currentCategory = 'Tile';
+    let currentSort     = 'manufacturer';
+    let allSamples      = [];
+
+    function colVal(row, headers, key) {
+        const i = headers.findIndex(h => h && h.toLowerCase().trim() === key.toLowerCase());
+        if (i === -1) return '';
+        const cell = row.c[i];
+        return cell && cell.v != null ? String(cell.v).trim() : '';
     }
 
     function renderError(msg) {
@@ -242,54 +326,47 @@
             `<div class="status"><strong>Error:</strong> ${msg}</div>`;
     }
 
-    function renderTable(samples, sortKey) {
-        const sorted = [...samples].sort((a, b) => {
-            const av = (a[sortKey] || '').toLowerCase();
-            const bv = (b[sortKey] || '').toLowerCase();
-            return av.localeCompare(bv);
-        });
+    function renderSortButtons(config) {
+        const container = document.getElementById('sort-buttons');
+        container.innerHTML = config.sortOptions.map((opt, i) =>
+            `<button class="sort-btn${i === 0 ? ' active' : ''}" data-key="${opt.key}" onclick="sortBy(this)">${opt.label}</button>`
+        ).join('');
+        currentSort = config.sortOptions[0].key;
+    }
 
-        const tbody = sorted.map(s => `
-            <tr>
-                <td>${s.manufacturer || '—'}</td>
-                <td>${s.collection || '—'}</td>
-                <td>${s.size || '—'}</td>
-                <td>${s.floor || '—'}</td>
-                <td>${s.wall || '—'}</td>
-                <td>${s.backsplash || '—'}</td>
-            </tr>
-        `).join('');
+    function renderTable(samples, config) {
+        const sorted = [...samples].sort((a, b) =>
+            (a[currentSort] || '').toLowerCase().localeCompare((b[currentSort] || '').toLowerCase())
+        );
+
+        const headers = config.columns.map(c => `<th>${c.label}</th>`).join('');
+        const rows = sorted.map(s =>
+            `<tr>${config.columns.map(c => `<td>${s[c.key] || '—'}</td>`).join('')}</tr>`
+        ).join('');
 
         document.getElementById('content').innerHTML = `
             <div class="table-wrap">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Manufacturer</th>
-                            <th>Collection</th>
-                            <th>Size</th>
-                            <th>Floor</th>
-                            <th>Wall</th>
-                            <th>Backsplash</th>
-                        </tr>
-                    </thead>
-                    <tbody>${tbody}</tbody>
+                    <thead><tr>${headers}</tr></thead>
+                    <tbody>${rows}</tbody>
                 </table>
-            </div>
-        `;
+            </div>`;
     }
 
     function sortBy(btn) {
         document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        currentSort = btn.dataset.col;
-        renderTable(allSamples, currentSort);
+        currentSort = btn.dataset.key;
+        renderTable(allSamples, CATEGORIES[currentCategory]);
     }
 
-    async function load() {
+    async function loadCategory(categoryName) {
+        document.getElementById('content').innerHTML = '<div class="status">Loading…</div>';
+        const config = CATEGORIES[categoryName];
+
         let data;
         try {
-            const res  = await fetch(SHEET_URL);
+            const res  = await fetch(BASE_URL + encodeURIComponent(categoryName));
             const text = await res.text();
             const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
             data = JSON.parse(json);
@@ -300,33 +377,44 @@
 
         const table = data.table;
         if (!table || !table.rows || table.rows.length === 0) {
-            renderError('The spreadsheet appears to be empty.');
+            renderError(`The ${categoryName} tab appears to be empty.`);
             return;
         }
 
         const headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
-        const rows = table.rows.slice(1);
+        const rows    = table.rows.slice(1);
 
         allSamples = rows
-            .map(row => ({
-                manufacturer: col(row, headers, 'manufacturer'),
-                collection:   col(row, headers, 'collection'),
-                size:         col(row, headers, 'size'),
-                floor:        col(row, headers, 'floor', 'floor price', 'floor cost'),
-                wall:         col(row, headers, 'wall', 'wall price', 'wall cost'),
-                backsplash:   col(row, headers, 'backsplash', 'backsplash price', 'backsplash cost'),
-            }))
+            .map(row => {
+                const obj = {};
+                config.columns.forEach(c => { obj[c.key] = colVal(row, headers, c.key); });
+                return obj;
+            })
             .filter(s => s.manufacturer || s.collection);
 
         if (allSamples.length === 0) {
-            renderError('No sample data found in the sheet.');
+            renderError(`No data found in the ${categoryName} tab.`);
             return;
         }
 
-        renderTable(allSamples, currentSort);
+        renderTable(allSamples, config);
     }
 
-    load();
+    function selectCategory(btn) {
+        document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCategory = btn.dataset.cat;
+        document.getElementById('print-meta').innerHTML =
+            `<span>${currentCategory} Reference Sheet</span><span>Printed: ${today}</span>`;
+        renderSortButtons(CATEGORIES[currentCategory]);
+        loadCategory(currentCategory);
+    }
+
+    // Init
+    document.getElementById('print-meta').innerHTML =
+        `<span>Tile Reference Sheet</span><span>Printed: ${today}</span>`;
+    renderSortButtons(CATEGORIES['Tile']);
+    loadCategory('Tile');
 </script>
 </body>
 </html>
