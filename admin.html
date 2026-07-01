@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin – Compass Homes</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,7 +11,86 @@
             font-family: 'Segoe UI', Arial, sans-serif;
             background: #f4f6f8;
             color: #222;
+            min-height: 100vh;
         }
+
+        /* ── Password screen ── */
+        #login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f4f6f8;
+        }
+
+        .login-box {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            padding: 48px 40px 40px;
+            width: 340px;
+            text-align: center;
+        }
+
+        .login-logo {
+            font-size: 1.4rem;
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            color: #003359;
+            text-transform: lowercase;
+            margin-bottom: 6px;
+        }
+
+        .login-logo span { font-weight: 700; text-transform: uppercase; }
+
+        .login-box h2 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #888;
+            margin-bottom: 28px;
+        }
+
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1.5px solid #dde3ea;
+            border-radius: 6px;
+            font-size: 1rem;
+            margin-bottom: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .login-box input[type="password"]:focus { border-color: #003359; }
+
+        .login-box button {
+            width: 100%;
+            background: #003359;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: background 0.15s;
+        }
+
+        .login-box button:hover { background: #004a7c; }
+
+        .login-error {
+            color: #c0392b;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            min-height: 18px;
+        }
+
+        /* ── Dashboard ── */
+        #dashboard { display: none; }
 
         header {
             background: #003359;
@@ -30,95 +108,82 @@
             text-transform: lowercase;
         }
 
-        header .logo span {
-            font-weight: 700;
-            text-transform: uppercase;
-        }
+        header .logo span { font-weight: 700; text-transform: uppercase; }
 
-        .print-btn {
-            background: #fff;
-            color: #003359;
-            border: none;
-            padding: 9px 22px;
-            font-size: 0.92rem;
-            font-weight: 700;
+        .logout-btn {
+            background: transparent;
+            color: rgba(255,255,255,0.75);
+            border: 1.5px solid rgba(255,255,255,0.4);
+            padding: 7px 18px;
+            font-size: 0.85rem;
+            font-weight: 600;
             border-radius: 5px;
             cursor: pointer;
             letter-spacing: 0.04em;
-            transition: background 0.15s;
+            transition: all 0.15s;
         }
 
-        .print-btn:hover { background: #e0e8f0; }
+        .logout-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
         .container {
-            max-width: 1100px;
-            margin: 36px auto;
+            max-width: 700px;
+            margin: 60px auto;
             padding: 0 20px;
         }
 
-        .status {
+        .dashboard-title {
             text-align: center;
-            padding: 60px 20px;
-            color: #666;
-            font-size: 1.05rem;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #888;
+            margin-bottom: 32px;
         }
 
-        .status strong { color: #c0392b; }
-
-        .grid {
+        .nav-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 24px;
         }
 
-        .card {
+        .nav-card {
             background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 14px rgba(0,0,0,0.08);
+            padding: 40px 24px;
+            text-align: center;
+            text-decoration: none;
+            color: #003359;
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-align: center;
+            gap: 14px;
+            transition: box-shadow 0.15s, transform 0.15s;
+            border: 2px solid transparent;
         }
 
-        .card .qr-box {
-            margin-bottom: 14px;
+        .nav-card:hover {
+            box-shadow: 0 6px 28px rgba(0,51,89,0.15);
+            transform: translateY(-2px);
+            border-color: #003359;
         }
 
-        .card .qr-box canvas,
-        .card .qr-box img {
-            display: block;
+        .nav-card .icon {
+            font-size: 2.4rem;
+            line-height: 1;
         }
 
-        .card .sample-id {
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            color: #fff;
-            background: #003359;
-            padding: 3px 10px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
-        .card .manufacturer {
+        .nav-card .label {
             font-size: 1rem;
             font-weight: 700;
-            color: #003359;
-            margin-bottom: 2px;
+            letter-spacing: 0.03em;
         }
 
-        .card .collection {
-            font-size: 0.88rem;
-            color: #555;
-            margin-bottom: 2px;
-        }
-
-        .card .size {
+        .nav-card .desc {
             font-size: 0.82rem;
-            color: #888;
+            color: #777;
+            font-weight: 400;
         }
 
         footer {
@@ -127,188 +192,84 @@
             font-size: 0.8rem;
             padding: 30px 0 20px;
         }
-
-        /* ── Print styles — Avery 5163 (2" × 4", 2-up, 5 rows) ── */
-        @media print {
-            @page {
-                size: 8.5in 11in;
-                margin: 0.5in 0.15in;
-            }
-
-            body { background: #fff; }
-            header, footer { display: none; }
-            .container { margin: 0; padding: 0; max-width: 100%; }
-
-            .grid {
-                display: grid;
-                grid-template-columns: 4in 4in;
-                grid-template-rows: repeat(5, 2in);
-                column-gap: 0.15in;
-                row-gap: 0;
-                page-break-inside: auto;
-            }
-
-            .card {
-                width: 4in;
-                height: 2in;
-                box-shadow: none;
-                border: none;
-                border-radius: 0;
-                padding: 0.15in 0.2in;
-                overflow: hidden;
-                page-break-inside: avoid;
-                break-inside: avoid;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .card .qr-box canvas,
-            .card .qr-box img {
-                width: 1in !important;
-                height: 1in !important;
-            }
-
-            .card .qr-box { margin-bottom: 4pt; }
-            .card .sample-id { font-size: 7pt; padding: 2px 6px; margin-bottom: 3pt; }
-            .card .manufacturer { font-size: 9pt; }
-            .card .collection { font-size: 8pt; }
-            .card .size { font-size: 7pt; }
-
-            .status { display: none; }
-        }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="logo">compass <span>Homes</span></div>
-    <button class="print-btn" onclick="window.print()">&#128438; Print All</button>
-</header>
-
-<div class="container">
-    <div id="content">
-        <div class="status">Loading samples…</div>
+<!-- Password screen -->
+<div id="login-screen">
+    <div class="login-box">
+        <div class="login-logo">compass <span>Homes</span></div>
+        <h2>Admin Portal</h2>
+        <input type="password" id="pw-input" placeholder="Enter password" />
+        <button onclick="tryLogin()">Sign In</button>
+        <div class="login-error" id="login-error"></div>
     </div>
 </div>
 
-<footer>compass HOMES &copy; <span id="yr"></span></footer>
+<!-- Dashboard (shown after auth) -->
+<div id="dashboard">
+    <header>
+        <div class="logo">compass <span>Homes</span></div>
+        <button class="logout-btn" onclick="logout()">Log Out</button>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-title">Select a Tool</div>
+        <div class="nav-grid">
+            <a class="nav-card" href="qr-labels.html">
+                <div class="icon">&#128247;</div>
+                <div class="label">Print QR Labels</div>
+                <div class="desc">Generate and print QR code labels for all samples</div>
+            </a>
+            <a class="nav-card" href="reference.html">
+                <div class="icon">&#128203;</div>
+                <div class="label">Print Reference Sheet</div>
+                <div class="desc">Sortable table of all samples with pricing groups</div>
+            </a>
+        </div>
+    </div>
+
+    <footer>compass HOMES &copy; <span id="yr"></span></footer>
+</div>
 
 <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
 
-    const SHEET_ID  = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0`;
-    const BASE_URL  = 'https://compass-samples.vercel.app/sample.html';
+    const PASSWORD = 'compass2024';
 
-    function col(row, headers, ...names) {
-        for (const name of names) {
-            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase());
-            if (i !== -1) {
-                const cell = row.c[i];
-                return cell && cell.v != null ? String(cell.v).trim() : '';
-            }
-        }
-        return '';
-    }
-
-    function renderError(msg) {
-        document.getElementById('content').innerHTML =
-            `<div class="status"><strong>Error:</strong> ${msg}</div>`;
-    }
-
-    async function load() {
-        let data;
-        try {
-            const res  = await fetch(SHEET_URL);
-            const text = await res.text();
-            const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
-            data = JSON.parse(json);
-        } catch (e) {
-            renderError('Could not load spreadsheet. Make sure the sheet is set to "Anyone with the link can view".');
-            return;
-        }
-
-        const table = data.table;
-        if (!table || !table.rows || table.rows.length === 0) {
-            renderError('The spreadsheet appears to be empty.');
-            return;
-        }
-
-        // With headers=0, gviz returns all rows as data — first row is our header row.
-        const headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
-        const rows = table.rows.slice(1);
-
-        const content = document.getElementById('content');
-        const grid = document.createElement('div');
-        grid.className = 'grid';
-
-        const qrQueue = []; // collect { element, url } after grid is in DOM
-
-        for (const row of rows) {
-            const sampleId     = col(row, headers, 'sample id', 'id', 'sampleid');
-            const manufacturer = col(row, headers, 'manufacturer');
-            const collection   = col(row, headers, 'collection');
-            const size         = col(row, headers, 'size');
-
-            if (!sampleId) continue;
-
-            const url = `${BASE_URL}?id=${encodeURIComponent(sampleId)}`;
-
-            const card = document.createElement('div');
-            card.className = 'card';
-
-            const qrBox = document.createElement('div');
-            qrBox.className = 'qr-box';
-
-            const idBadge   = document.createElement('div');
-            idBadge.className = 'sample-id';
-            idBadge.textContent = sampleId;
-
-            const mfr = document.createElement('div');
-            mfr.className = 'manufacturer';
-            mfr.textContent = manufacturer || '—';
-
-            const coll = document.createElement('div');
-            coll.className = 'collection';
-            coll.textContent = collection || '';
-
-            const sz = document.createElement('div');
-            sz.className = 'size';
-            sz.textContent = size || '';
-
-            card.appendChild(qrBox);
-            card.appendChild(idBadge);
-            card.appendChild(mfr);
-            card.appendChild(coll);
-            card.appendChild(sz);
-            grid.appendChild(card);
-
-            qrQueue.push({ el: qrBox, url });
-        }
-
-        content.innerHTML = '';
-        if (grid.children.length === 0) {
-            content.innerHTML = '<div class="status">No samples with IDs found in the sheet.</div>';
-            return;
-        }
-
-        content.appendChild(grid); // grid must be in DOM before QRCode renders
-
-        for (const { el, url } of qrQueue) {
-            new QRCode(el, {
-                text: url,
-                width: 160,
-                height: 160,
-                colorDark: '#003359',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M
-            });
+    function tryLogin() {
+        const val = document.getElementById('pw-input').value;
+        if (val === PASSWORD) {
+            sessionStorage.setItem('ch_admin', '1');
+            showDashboard();
+        } else {
+            document.getElementById('login-error').textContent = 'Incorrect password. Please try again.';
+            document.getElementById('pw-input').value = '';
+            document.getElementById('pw-input').focus();
         }
     }
 
-    load();
+    function logout() {
+        sessionStorage.removeItem('ch_admin');
+        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('pw-input').value = '';
+        document.getElementById('login-error').textContent = '';
+    }
+
+    function showDashboard() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+    }
+
+    // Allow Enter key on password input
+    document.getElementById('pw-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') tryLogin();
+    });
+
+    // Check session on load
+    if (sessionStorage.getItem('ch_admin') === '1') showDashboard();
 </script>
 </body>
 </html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reference Sheet – Compass Homes</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #003359;
+            color: #fff;
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header .logo {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            text-transform: lowercase;
+        }
+
+        header .logo span { font-weight: 700; text-transform: uppercase; }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .btn {
+            border: none;
+            padding: 9px 20px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            border-radius: 5px;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            transition: background 0.15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary { background: #fff; color: #003359; }
+        .btn-primary:hover { background: #e0e8f0; }
+
+        .btn-ghost {
+            background: transparent;
+            color: rgba(255,255,255,0.75);
+            border: 1.5px solid rgba(255,255,255,0.4);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+        .container {
+            max-width: 1000px;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #888;
+            margin-right: 4px;
+        }
+
+        .sort-btn {
+            background: #f0f4f8;
+            border: 1.5px solid #dde3ea;
+            color: #003359;
+            padding: 7px 16px;
+            font-size: 0.83rem;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .sort-btn:hover { background: #e0e8f0; border-color: #003359; }
+        .sort-btn.active { background: #003359; color: #fff; border-color: #003359; }
+
+        /* ── Table ── */
+        .table-wrap {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #003359;
+            color: #fff;
+            text-align: left;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            padding: 12px 16px;
+        }
+
+        tbody tr:nth-child(even) { background: #f7f9fb; }
+        tbody tr:hover { background: #eef3f8; }
+
+        tbody td {
+            padding: 11px 16px;
+            font-size: 0.92rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:last-child td { border-bottom: none; }
+
+        .status {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.05rem;
+        }
+
+        .status strong { color: #c0392b; }
+
+        footer {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.8rem;
+            padding: 30px 0 20px;
+        }
+
+        /* ── Print styles ── */
+        @media print {
+            @page { size: 8.5in 11in; margin: 0.5in; }
+
+            body { background: #fff; }
+            header { padding: 10px 0; }
+            header .header-actions { display: none; }
+            .toolbar { display: none; }
+            .container { margin: 0; padding: 0; max-width: 100%; }
+            footer { display: none; }
+
+            .print-date {
+                font-size: 9pt;
+                color: #666;
+                text-align: right;
+                margin-bottom: 8pt;
+            }
+
+            .table-wrap { box-shadow: none; border-radius: 0; }
+
+            thead th {
+                background: #003359 !important;
+                color: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                font-size: 8pt;
+                padding: 6px 10px;
+            }
+
+            tbody td { font-size: 8pt; padding: 5px 10px; }
+            tbody tr:nth-child(even) { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">compass <span>Homes</span></div>
+    <div class="header-actions">
+        <a class="btn btn-ghost" href="admin.html">&#8592; Back to Admin</a>
+        <button class="btn btn-primary" onclick="window.print()">&#128438; Print</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="print-date" id="print-date"></div>
+
+    <div class="toolbar" id="toolbar">
+        <label>Sort by:</label>
+        <button class="sort-btn active" data-col="manufacturer" onclick="sortBy(this)">Manufacturer</button>
+        <button class="sort-btn" data-col="size" onclick="sortBy(this)">Size</button>
+        <button class="sort-btn" data-col="floor" onclick="sortBy(this)">Floor Group</button>
+        <button class="sort-btn" data-col="wall" onclick="sortBy(this)">Wall Group</button>
+        <button class="sort-btn" data-col="backsplash" onclick="sortBy(this)">Backsplash Group</button>
+    </div>
+
+    <div id="content">
+        <div class="status">Loading samples…</div>
+    </div>
+</div>
+
+<footer>compass HOMES &copy; <span id="yr"></span></footer>
+
+<script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('print-date').textContent = 'Printed: ' + today;
+
+    const SHEET_ID  = '1cP4akGv7HwPtmVt9yxrcQYl7sIa-rkOR0tEFQBNgRD4';
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0`;
+
+    let allSamples = [];
+    let currentSort = 'manufacturer';
+
+    function col(row, headers, ...names) {
+        for (const name of names) {
+            const i = headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase());
+            if (i !== -1) {
+                const cell = row.c[i];
+                return cell && cell.v != null ? String(cell.v).trim() : '';
+            }
+        }
+        return '';
+    }
+
+    function renderError(msg) {
+        document.getElementById('content').innerHTML =
+            `<div class="status"><strong>Error:</strong> ${msg}</div>`;
+    }
+
+    function renderTable(samples, sortKey) {
+        const sorted = [...samples].sort((a, b) => {
+            const av = (a[sortKey] || '').toLowerCase();
+            const bv = (b[sortKey] || '').toLowerCase();
+            return av.localeCompare(bv);
+        });
+
+        const tbody = sorted.map(s => `
+            <tr>
+                <td>${s.manufacturer || '—'}</td>
+                <td>${s.collection || '—'}</td>
+                <td>${s.size || '—'}</td>
+                <td>${s.floor || '—'}</td>
+                <td>${s.wall || '—'}</td>
+                <td>${s.backsplash || '—'}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('content').innerHTML = `
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Manufacturer</th>
+                            <th>Collection</th>
+                            <th>Size</th>
+                            <th>Floor</th>
+                            <th>Wall</th>
+                            <th>Backsplash</th>
+                        </tr>
+                    </thead>
+                    <tbody>${tbody}</tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    function sortBy(btn) {
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSort = btn.dataset.col;
+        renderTable(allSamples, currentSort);
+    }
+
+    async function load() {
+        let data;
+        try {
+            const res  = await fetch(SHEET_URL);
+            const text = await res.text();
+            const json = text.replace(/^[^(]+\(/, '').replace(/\);?\s*$/, '');
+            data = JSON.parse(json);
+        } catch (e) {
+            renderError('Could not load spreadsheet. Make sure the sheet is set to "Anyone with the link can view".');
+            return;
+        }
+
+        const table = data.table;
+        if (!table || !table.rows || table.rows.length === 0) {
+            renderError('The spreadsheet appears to be empty.');
+            return;
+        }
+
+        const headers = table.rows[0].c.map(cell => (cell && cell.v != null ? String(cell.v) : ''));
+        const rows = table.rows.slice(1);
+
+        allSamples = rows
+            .map(row => ({
+                manufacturer: col(row, headers, 'manufacturer'),
+                collection:   col(row, headers, 'collection'),
+                size:         col(row, headers, 'size'),
+                floor:        col(row, headers, 'floor', 'floor price', 'floor cost'),
+                wall:         col(row, headers, 'wall', 'wall price', 'wall cost'),
+                backsplash:   col(row, headers, 'backsplash', 'backsplash price', 'backsplash cost'),
+            }))
+            .filter(s => s.manufacturer || s.collection);
+
+        if (allSamples.length === 0) {
+            renderError('No sample data found in the sheet.');
+            return;
+        }
+
+        renderTable(allSamples, currentSort);
+    }
+
+    load();
+</script>
+</body>
+</html>
