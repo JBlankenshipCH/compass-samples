@@ -23,14 +23,7 @@
             justify-content: space-between;
         }
 
-        header .logo {
-            font-size: 1.5rem;
-            font-weight: 300;
-            letter-spacing: 0.08em;
-            text-transform: lowercase;
-        }
-
-        header .logo span { font-weight: 700; text-transform: uppercase; }
+        header .logo img { height: 36px; width: auto; display: block; }
 
         .header-actions { display: flex; gap: 10px; }
 
@@ -220,7 +213,7 @@
 <body>
 
 <header>
-    <div class="logo">compass <span>Homes</span></div>
+    <div class="logo"><img src="compass_logo_white.png" alt="Compass Homes"></div>
     <div class="header-actions">
         <a class="btn btn-ghost" href="admin.html">&#8592; Back to Admin</a>
         <button class="btn btn-primary" onclick="window.print()">&#128438; Print</button>
