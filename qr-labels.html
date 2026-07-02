@@ -84,6 +84,13 @@
             text-align: center;
         }
 
+        .card-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
         .card .qr-box { margin-bottom: 10px; }
         .card .qr-box canvas, .card .qr-box img { display: block; }
 
@@ -157,14 +164,26 @@
                 box-shadow: none;
                 border: none;
                 border-radius: 0;
-                padding: 0.1in 0.15in;
+                padding: 0;
                 overflow: hidden;
                 page-break-inside: avoid;
                 break-inside: avoid;
                 display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Rotate label content 90° so it reads sideways on the 4"×2" label */
+            .card-inner {
+                width: 2in;
+                height: 4in;
+                transform: rotate(90deg);
+                display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
+                padding: 0.1in;
+                flex-shrink: 0;
             }
 
             .card .qr-box canvas,
@@ -314,6 +333,9 @@
                 card.className = 'card';
                 card.dataset.cat = tab.name;
 
+                const inner = document.createElement('div');
+                inner.className = 'card-inner';
+
                 const qrBox = document.createElement('div');
                 qrBox.className = 'qr-box';
 
@@ -337,12 +359,13 @@
                 desc.className = 'descriptor';
                 desc.textContent = descriptor || '';
 
-                card.appendChild(qrBox);
-                card.appendChild(catBadge);
-                card.appendChild(idBadge);
-                card.appendChild(mfr);
-                card.appendChild(coll);
-                if (descriptor) card.appendChild(desc);
+                inner.appendChild(qrBox);
+                inner.appendChild(catBadge);
+                inner.appendChild(idBadge);
+                inner.appendChild(mfr);
+                inner.appendChild(coll);
+                if (descriptor) inner.appendChild(desc);
+                card.appendChild(inner);
                 grid.appendChild(card);
 
                 qrQueue.push({ el: qrBox, url });
