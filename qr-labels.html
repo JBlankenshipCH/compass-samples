@@ -199,8 +199,8 @@
                 flex-shrink: 0;
             }
 
-            .card .qr-box canvas,
-            .card .qr-box img { width: 1.35in !important; height: 1.35in !important; }
+            .card .qr-box canvas { display: none !important; }
+            .card .qr-box img { width: 1.35in !important; height: 1.35in !important; display: block !important; }
             .card .qr-box { margin-bottom: 3pt; }
             .cat-badge {
                 font-size: 6pt; padding: 1px 6px; margin-bottom: 3pt;
@@ -508,22 +508,13 @@
             if (card.style.display === 'none') return;
             const qty = parseInt(card.querySelector('.qty-input')?.value || '1', 10);
             if (qty < 1) return;
-            // Convert QR canvas to a data URL so clones can show it as an img
-            const canvas = card.querySelector('.qr-box canvas');
-            const qrDataUrl = canvas ? canvas.toDataURL() : null;
             expanded.push(card); // original
             for (let n = 1; n < qty; n++) {
                 const clone = card.cloneNode(true);
                 clone.classList.add('print-clone');
-                // Replace canvas with img in clone
-                if (qrDataUrl) {
-                    const cloneCanvas = clone.querySelector('.qr-box canvas');
-                    if (cloneCanvas) {
-                        const img = document.createElement('img');
-                        img.src = qrDataUrl;
-                        cloneCanvas.replaceWith(img);
-                    }
-                }
+                // QRCode.js puts both a canvas and an img in qr-box.
+                // The img already has the QR as a data URL — just remove the canvas.
+                clone.querySelector('.qr-box canvas')?.remove();
                 clone.querySelector('.qty-row')?.remove();
                 expanded.push(clone);
             }
