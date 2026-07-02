@@ -125,22 +125,31 @@
             padding: 30px 0 20px;
         }
 
-        /* ── Print styles — Avery 5163 (2" × 4", 2-up, 5 rows) ── */
+        /* ── Print styles — Avery 5163 (4" × 2", 2-up × 5 rows, 10 per sheet) ── */
         @media print {
-            @page { size: 8.5in 11in; margin: 0.5in 0.15in; }
+            @page {
+                size: 8.5in 11in;
+                /* Avery 5163: 0.5in top/bottom, 0.15625in left/right */
+                margin: 0.5in 0.15625in;
+            }
 
             body { background: #fff; }
             header, footer { display: none; }
             .container { margin: 0; padding: 0; max-width: 100%; }
+            .filter-toolbar { display: none; }
 
             .grid {
                 display: grid;
+                /* Avery 5163: two 4" columns with 0.1875" gap between them */
                 grid-template-columns: 4in 4in;
-                grid-template-rows: repeat(5, 2in);
-                column-gap: 0.15in;
-                row-gap: 0;
+                grid-auto-rows: 2in;
+                column-gap: 0.1875in;
+                row-gap: 0in;
                 page-break-inside: auto;
             }
+
+            /* Hide filtered-out cards so they don't print as blank slots */
+            .card[style*="display: none"] { display: none !important; }
 
             .card {
                 width: 4in;
@@ -148,7 +157,7 @@
                 box-shadow: none;
                 border: none;
                 border-radius: 0;
-                padding: 0.1in 0.2in;
+                padding: 0.1in 0.15in;
                 overflow: hidden;
                 page-break-inside: avoid;
                 break-inside: avoid;
@@ -161,17 +170,22 @@
             .card .qr-box canvas,
             .card .qr-box img { width: 1in !important; height: 1in !important; }
             .card .qr-box { margin-bottom: 3pt; }
-            .cat-badge { font-size: 6pt; padding: 1px 6px; margin-bottom: 3pt;
-                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .cat-badge {
+                font-size: 6pt; padding: 1px 6px; margin-bottom: 3pt;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
             .cat-tile     { background: #1a6e99 !important; }
             .cat-hardwood { background: #7B4F2E !important; }
             .cat-carpet   { background: #3D6B4F !important; }
-            .card .sample-id { font-size: 7pt; padding: 2px 6px; margin-bottom: 3pt; }
+            .card .sample-id {
+                background: #01334d !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+                font-size: 7pt; padding: 2px 6px; margin-bottom: 3pt;
+            }
             .card .manufacturer { font-size: 9pt; }
             .card .collection   { font-size: 8pt; }
             .card .descriptor   { font-size: 7pt; }
             .status { display: none; }
-        .cat-tabs, .filter-toolbar { display: none; }
         }
 
         /* ── Category filter tabs ── */
