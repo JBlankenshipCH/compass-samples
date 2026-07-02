@@ -148,14 +148,13 @@
             /* Original on-screen grid is hidden while printing; #print-pages replaces it */
             #content .grid { display: none; }
 
-            /* Each .print-page is exactly one Avery 5163 sheet: 2 cols × 5 rows */
+            /* Each .print-page is exactly one Avery 5163 sheet: 2 cols × 5 rows.
+               Cards are absolutely positioned at exact label coordinates so
+               browser page-fragmentation rounding can't cause drift. */
             .print-page {
-                display: grid;
-                grid-template-columns: 4in 4in;
-                grid-template-rows: repeat(5, 2in);
-                column-gap: 0.1875in;
-                row-gap: 0in;
-                height: 10in;
+                position: relative;
+                width: 8.1875in;
+                height: 9.99in;
                 overflow: hidden;
                 page-break-after: always;
                 break-after: page;
@@ -164,6 +163,10 @@
             .print-page:last-child {
                 page-break-after: auto;
                 break-after: auto;
+            }
+
+            .print-page .card {
+                position: absolute;
             }
 
             .card {
@@ -418,7 +421,13 @@
         for (let i = 0; i < visible.length; i += 10) {
             const page = document.createElement('div');
             page.className = 'print-page';
-            visible.slice(i, i + 10).forEach(c => page.appendChild(c));
+            visible.slice(i, i + 10).forEach((c, j) => {
+                const col = j % 2;
+                const row = Math.floor(j / 2);
+                c.style.left = (col * 4.1875) + 'in';   // 4in label + 0.1875in gap
+                c.style.top  = (row * 2) + 'in';
+                page.appendChild(c);
+            });
             printPagesEl.appendChild(page);
         }
 
@@ -428,7 +437,11 @@
     window.addEventListener('afterprint', () => {
         if (!printPagesEl) return;
         const grid = document.querySelector('#content .grid');
-        originalOrder.forEach(c => grid.appendChild(c));
+        originalOrder.forEach(c => {
+            c.style.left = '';
+            c.style.top = '';
+            grid.appendChild(c);
+        });
         printPagesEl.remove();
         printPagesEl = null;
         originalOrder = null;
