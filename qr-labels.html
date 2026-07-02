@@ -199,7 +199,6 @@
                 flex-shrink: 0;
             }
 
-            .card .qr-box canvas { display: none !important; }
             .card .qr-box img { width: 1.35in !important; height: 1.35in !important; display: block !important; }
             .card .qr-box { margin-bottom: 3pt; }
             .cat-badge {
@@ -491,6 +490,22 @@
                 correctLevel: QRCode.CorrectLevel.M
             });
         }
+
+        // QRCode.js leaves both a canvas and an img in each qr-box.
+        // Canvas pixel data doesn't survive cloneNode, so replace each
+        // qr-box with a single stable <img> using the canvas data URL.
+        // Slight delay ensures QRCode.js has finished rendering.
+        setTimeout(() => {
+            document.querySelectorAll('.qr-box').forEach(box => {
+                const canvas = box.querySelector('canvas');
+                if (!canvas) return;
+                const dataUrl = canvas.toDataURL();
+                box.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                box.appendChild(img);
+            });
+        }, 400);
     }
 
     // ── Print pagination: chunk visible cards into fixed 10-per-sheet pages ──
@@ -512,9 +527,6 @@
             for (let n = 1; n < qty; n++) {
                 const clone = card.cloneNode(true);
                 clone.classList.add('print-clone');
-                // QRCode.js puts both a canvas and an img in qr-box.
-                // The img already has the QR as a data URL — just remove the canvas.
-                clone.querySelector('.qr-box canvas')?.remove();
                 clone.querySelector('.qty-row')?.remove();
                 expanded.push(clone);
             }
