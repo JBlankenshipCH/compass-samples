@@ -254,6 +254,78 @@
         .filter-btn.active.f-tile     { background: #1a6e99; border-color: #1a6e99; }
         .filter-btn.active.f-hardwood { background: #7B4F2E; border-color: #7B4F2E; }
         .filter-btn.active.f-carpet   { background: #3D6B4F; border-color: #3D6B4F; }
+
+        .search-box {
+            padding: 7px 14px;
+            font-size: 0.85rem;
+            border: 2px solid #dde3ea;
+            border-radius: 5px;
+            outline: none;
+            width: 220px;
+            transition: border-color 0.15s;
+            margin-left: 8px;
+        }
+        .search-box:focus { border-color: #01334d; }
+
+        /* ── Qty control ── */
+        .qty-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .qty-row label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #888;
+        }
+
+        .qty-btn {
+            width: 26px;
+            height: 26px;
+            border: 1.5px solid #dde3ea;
+            background: #f4f6f8;
+            border-radius: 4px;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #01334d;
+            font-weight: 700;
+            transition: background 0.1s;
+        }
+        .qty-btn:hover { background: #e0e8f0; border-color: #01334d; }
+
+        .qty-input {
+            width: 44px;
+            text-align: center;
+            border: 1.5px solid #dde3ea;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #01334d;
+            padding: 3px 4px;
+            -moz-appearance: textfield;
+        }
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+        .qty-input:focus { outline: none; border-color: #01334d; }
+
+        /* dim cards with qty 0 */
+        .card.qty-zero { opacity: 0.35; }
+
+        @media print {
+            .qty-row { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -268,11 +340,12 @@
 
 <div class="container">
     <div class="filter-toolbar" id="filter-toolbar">
-        <label>Show:</label>
+        <label>Category:</label>
         <button class="filter-btn active" data-cat="all"      onclick="filterBy(this)">All</button>
         <button class="filter-btn f-tile"     data-cat="Tile"     onclick="filterBy(this)">Tile</button>
         <button class="filter-btn f-hardwood" data-cat="Hardwood" onclick="filterBy(this)">Hardwood</button>
         <button class="filter-btn f-carpet"   data-cat="Carpet"   onclick="filterBy(this)">Carpet</button>
+        <input type="search" class="search-box" id="search-box" placeholder="Search manufacturer or collection…" oninput="applyFilters()">
     </div>
     <div id="content">
         <div class="status">Loading samples…</div>
@@ -379,6 +452,20 @@
                 inner.appendChild(coll);
                 if (descriptor) inner.appendChild(desc);
                 card.appendChild(inner);
+
+                // Qty control (screen only — hidden in print)
+                const qtyRow = document.createElement('div');
+                qtyRow.className = 'qty-row';
+                qtyRow.innerHTML = `
+                    <label>Qty</label>
+                    <button class="qty-btn" onclick="adjustQty(this,-1)">&#8722;</button>
+                    <input class="qty-input" type="number" value="1" min="0" max="99">
+                    <button class="qty-btn" onclick="adjustQty(this,1)">+</button>`;
+                card.appendChild(qtyRow);
+
+                // Store searchable text for filtering
+                card.dataset.search = `${manufacturer} ${collection}`.toLowerCase();
+
                 grid.appendChild(card);
 
                 qrQueue.push({ el: qrBox, url });
@@ -415,18 +502,43 @@
         if (!grid || printPagesEl) return;
 
         originalOrder = [...grid.children];
-        const visible = originalOrder.filter(c => c.style.display !== 'none');
+        // Expand each visible card by its qty, cloning extras with the QR as an image
+        const expanded = [];
+        originalOrder.forEach(card => {
+            if (card.style.display === 'none') return;
+            const qty = parseInt(card.querySelector('.qty-input')?.value || '1', 10);
+            if (qty < 1) return;
+            // Convert QR canvas to a data URL so clones can show it as an img
+            const canvas = card.querySelector('.qr-box canvas');
+            const qrDataUrl = canvas ? canvas.toDataURL() : null;
+            expanded.push(card); // original
+            for (let n = 1; n < qty; n++) {
+                const clone = card.cloneNode(true);
+                clone.classList.add('print-clone');
+                // Replace canvas with img in clone
+                if (qrDataUrl) {
+                    const cloneCanvas = clone.querySelector('.qr-box canvas');
+                    if (cloneCanvas) {
+                        const img = document.createElement('img');
+                        img.src = qrDataUrl;
+                        cloneCanvas.replaceWith(img);
+                    }
+                }
+                clone.querySelector('.qty-row')?.remove();
+                expanded.push(clone);
+            }
+        });
 
         printPagesEl = document.createElement('div');
         printPagesEl.id = 'print-pages';
 
-        for (let i = 0; i < visible.length; i += 10) {
+        for (let i = 0; i < expanded.length; i += 10) {
             const page = document.createElement('div');
             page.className = 'print-page';
-            visible.slice(i, i + 10).forEach((c, j) => {
+            expanded.slice(i, i + 10).forEach((c, j) => {
                 const col = j % 2;
                 const row = Math.floor(j / 2);
-                c.style.left = (col * 4.1875) + 'in';   // 4in label + 0.1875in gap
+                c.style.left = (col * 4.1875) + 'in';
                 c.style.top  = (row * 2) + 'in';
                 page.appendChild(c);
             });
@@ -439,9 +551,11 @@
     window.addEventListener('afterprint', () => {
         if (!printPagesEl) return;
         const grid = document.querySelector('#content .grid');
+        // Remove clones, restore originals
+        printPagesEl.querySelectorAll('.print-clone').forEach(c => c.remove());
         originalOrder.forEach(c => {
             c.style.left = '';
-            c.style.top = '';
+            c.style.top  = '';
             grid.appendChild(c);
         });
         printPagesEl.remove();
@@ -449,13 +563,30 @@
         originalOrder = null;
     });
 
+    let activeCat = 'all';
+
     function filterBy(btn) {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        const cat = btn.dataset.cat;
+        activeCat = btn.dataset.cat;
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const q = (document.getElementById('search-box')?.value || '').toLowerCase().trim();
         document.querySelectorAll('.card').forEach(card => {
-            card.style.display = (cat === 'all' || card.dataset.cat === cat) ? '' : 'none';
+            const catMatch    = activeCat === 'all' || card.dataset.cat === activeCat;
+            const searchMatch = !q || (card.dataset.search || '').includes(q);
+            card.style.display = (catMatch && searchMatch) ? '' : 'none';
         });
+    }
+
+    function adjustQty(btn, delta) {
+        const input = btn.parentElement.querySelector('.qty-input');
+        const newVal = Math.max(0, Math.min(99, parseInt(input.value || '1', 10) + delta));
+        input.value = newVal;
+        const card = btn.closest('.card');
+        card.classList.toggle('qty-zero', newVal === 0);
     }
 
     load();
