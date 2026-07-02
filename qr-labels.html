@@ -140,23 +140,31 @@
                 margin: 0.5in 0.15625in;
             }
 
-            body { background: #fff; }
+            body { background: #fff; margin: 0; }
             header, footer { display: none; }
             .container { margin: 0; padding: 0; max-width: 100%; }
             .filter-toolbar { display: none; }
 
-            .grid {
+            /* Original on-screen grid is hidden while printing; #print-pages replaces it */
+            #content .grid { display: none; }
+
+            /* Each .print-page is exactly one Avery 5163 sheet: 2 cols × 5 rows */
+            .print-page {
                 display: grid;
-                /* Avery 5163: two 4" columns with 0.1875" gap between them */
                 grid-template-columns: 4in 4in;
-                grid-auto-rows: 2in;
+                grid-template-rows: repeat(5, 2in);
                 column-gap: 0.1875in;
                 row-gap: 0in;
-                page-break-inside: auto;
+                height: 10in;
+                overflow: hidden;
+                page-break-after: always;
+                break-after: page;
             }
 
-            /* Hide filtered-out cards so they don't print as blank slots */
-            .card[style*="display: none"] { display: none !important; }
+            .print-page:last-child {
+                page-break-after: auto;
+                break-after: auto;
+            }
 
             .card {
                 width: 4in;
@@ -392,6 +400,39 @@
             });
         }
     }
+
+    // ── Print pagination: chunk visible cards into fixed 10-per-sheet pages ──
+    let printPagesEl = null;
+    let originalOrder = null;
+
+    window.addEventListener('beforeprint', () => {
+        const grid = document.querySelector('#content .grid');
+        if (!grid || printPagesEl) return;
+
+        originalOrder = [...grid.children];
+        const visible = originalOrder.filter(c => c.style.display !== 'none');
+
+        printPagesEl = document.createElement('div');
+        printPagesEl.id = 'print-pages';
+
+        for (let i = 0; i < visible.length; i += 10) {
+            const page = document.createElement('div');
+            page.className = 'print-page';
+            visible.slice(i, i + 10).forEach(c => page.appendChild(c));
+            printPagesEl.appendChild(page);
+        }
+
+        document.getElementById('content').appendChild(printPagesEl);
+    });
+
+    window.addEventListener('afterprint', () => {
+        if (!printPagesEl) return;
+        const grid = document.querySelector('#content .grid');
+        originalOrder.forEach(c => grid.appendChild(c));
+        printPagesEl.remove();
+        printPagesEl = null;
+        originalOrder = null;
+    });
 
     function filterBy(btn) {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
