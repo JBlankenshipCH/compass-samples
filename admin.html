@@ -265,8 +265,8 @@
         if (e.key === 'Enter') tryLogin();
     });
 
-    // Check session on load
-    if (sessionStorage.getItem('ch_admin') === '1') showDashboard();
+    // Password protection temporarily disabled — auto-show dashboard
+    showDashboard();
 </script>
 </body>
 </html>
