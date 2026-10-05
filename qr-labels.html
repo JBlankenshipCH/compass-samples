@@ -415,7 +415,7 @@
                 const url = `${SAMPLE_BASE}?id=${encodeURIComponent(sampleId)}`;
 
                 const card = document.createElement('div');
-                card.className = 'card';
+                card.className = 'card qty-zero';
                 card.dataset.cat = tab.name;
 
                 const inner = document.createElement('div');
@@ -458,7 +458,7 @@
                 qtyRow.innerHTML = `
                     <label>Qty</label>
                     <button class="qty-btn" onclick="adjustQty(this,-1)">&#8722;</button>
-                    <input class="qty-input" type="number" value="1" min="0" max="99">
+                    <input class="qty-input" type="number" value="0" min="0" max="99">
                     <button class="qty-btn" onclick="adjustQty(this,1)">+</button>`;
                 card.appendChild(qtyRow);
 
